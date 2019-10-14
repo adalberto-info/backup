@@ -1,0 +1,19 @@
+
+
+DEMANDA: MODASP-2413 - NT e-RESSARCIMENTO 
+=========================================
+Dt. Criação: 09/10/2019
+
+Desenvolvimento
+===============
+1 - Alterar a tela de cadastro de produtos para identificar o item sujeito a substituição tributária.
+  - LX002006 - PRODUTOS ACABADOS
+		- alterada a view V_PRODUTOS_UF_ICMS_00 (inclusão dos campos aliquota_FECP e is_ICMS_SUBSTITUTO).
+
+
+
+
+2 - Alterar a tela de cadastro de materiais para identificar o item sujeito a substituição tributária
+  - LX003008 - MATERIAIS
+
+3 - Alterar a tabela ENTRADAS_IMPOSTO adicionando os campos:

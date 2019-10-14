@@ -1,0 +1,18 @@
+
+
+DEMANDA: MODASP-2413
+
+DESENVOLVIMENTO
+
+- Criação de campos e tabelas
+
+Alteração nas telas: 
+- LX002006 - Produto Acabado
+- LX003008 - Materiais
+- LX005102 - Entrada de Notas Fiscais de Produto Acabado
+- LX005112 - Entrada de Notas Fiscais de Produto Acabado Por Loja
+- LX005104 - Entrada de Notas Fiscais de Materiais
+- LX005103 - Entrada de Notas Fiscais sem Separado Físico e Fiscal
+- LX005109 - Entrada de Notas Fiscais de Consumíveis
+
+- Desenvolvimento da tela de Fechamento de Ressarcimento
