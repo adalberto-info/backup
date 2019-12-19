@@ -37,6 +37,7 @@ AS
 		ELSE
 			BEGIN
 
+
 			SELECT @UTILIZA_SALDO_ANTERIOR = A.UTILIZA_SALDO_ANTERIOR,  
 				   @COD_FECHAMENTO_ANTERIOR = A.COD_FECHAMENTO_ANTERIOR, 
 				   @DT_INI_RESS = A.DATA_INICIAL,
@@ -74,6 +75,8 @@ AS
 				-----------------------------------------------------------------------------------------------------------------------------------------------
 				-- Selecionando as notas fiscais de saida [tabela CONTROLE_SAI_RESSARCIMENTO]
 				-----------------------------------------------------------------------------------------------------------------------------------------------
+
+				-- tabela temporária de CONTROLE_SAI_RESSARCIMENTO
 				DECLARE @TMP_SAIDA TABLE ([EMPRESA] [INT] ,
 										  [COD_FILIAL] [char](06),
 										  [FILIAL] [varchar](25) ,
@@ -110,7 +113,8 @@ AS
 										  [ITEM_IMPRESSAO] [char](4),
 								  		  [SALDO_NF_SAIDA] [numeric](9,3) NULL,
 										  [SEQ] [numeric] (3))
-
+				
+				-- tabela temporária das notas fiscais de saída selecionadas no período... 
 				DECLARE @TMP_SAIDA_ORIGEM TABLE ([EMPRESA] [INT] ,
 										  [COD_FILIAL] [char](06),
 										  [NF_SAIDA] [char](15) ,
@@ -121,6 +125,7 @@ AS
 										  [QTDE_VENDIDA] [numeric](9,3) ,
 										  [SEQ] [numeric] (3))
 
+				-- Tabela temporária de CONTROLE_ENT_RESSARCIMENTO
 				DECLARE @TMP_ENTRADA TABLE ([COD_FECHAMENTO] [char](08),
 									  [EMPRESA] [int], 
 									  [COD_FILIAL] [char](06), 
@@ -150,6 +155,17 @@ AS
 									  [DESCRICAO_ITEM] [varchar](80), 
 									  [NUMERO_MODELO_FISCAL] [varchar](03))
 
+				-- Tabela temporária de CONTROLE_SALDO_RESSARCIMENTO
+				DECLARE @TMP_SALDO_RESSARCIMENTO TABLE ([FILIAL] [varchar](25),
+														[COD_FECHAMENTO] [char](8),
+														[ITEM] [char](12),
+														[ESTOQUE_INICIAL] [numeric](9,3),
+														[ESTOQUE_FINAL] [numeric](9,3),
+														[QTDE_MOV] [numeric](9,3),
+														[ICMS_EFETIVO] [numeric](14,2),
+														[ICMS_PRESUMIDO] [numeric](14,2),
+														[COMPL_REST] [numeric](15,5),
+														[TOTAL] [numeric](15,5))
 
 				-- Selecionando as notas de saída do período selecionado...		
 										  
@@ -160,7 +176,7 @@ AS
 										QTDE, CHAVE_NFE_SUBSTITUTO, SEQ_ITEM_SUBSTITUTO, COD_FECHAMENTO, UNIDADE, PRECO_UNITARIO, DESCRICAO_ITEM,
 										NUMERO_MODELO_FISCAL, ITEM_IMPRESSAO, SALDO_NF_SAIDA, SEQ)
 				SELECT C.EMPRESA, C.COD_FILIAL, A.FILIAL, A.NOME_CLIFOR, A.NF_SAIDA, ISNULL(A.SERIE_NF,''), A.CHAVE_NFE, A.EMISSAO, A.VALOR_TOTAL, J.PRODUTO,
-					   LEFT(ISNULL(B.REFERENCIA_ITEM, ''),10) AS COR_ITEM, B.SUB_ITEM_TAMANHO AS TAMANHO, B.QTDE_ITEM, F.ALIQUOTA,
+					   SUBSTRING(LEFT(ISNULL(B.REFERENCIA_ITEM, ''),10),1,5) AS COR_ITEM, B.SUB_ITEM_TAMANHO AS TAMANHO, B.QTDE_ITEM, F.ALIQUOTA,
 					   I.BASE_IMPOSTO AS BASE_ICMS_ST, D.VALOR_IMPOSTO, (G.BASE_IMPOSTO * (F.ALIQUOTA/100)) AS ICMS_PRESUMIDO, G.BASE_IMPOSTO AS BASE_ICMS_PRESUMIDO, 
 					   CASE WHEN H.TRIBUT_ICMS IN ('40','41') THEN B.VALOR_ITEM ELSE 0.00 END AS VALOR_ISENTO, A.INDICA_CONSUMIDOR_FINAL,		  
 					   B.CODIGO_FISCAL_OPERACAO, '' AS NF_ENTRADA_RELACIONADA, '' AS SERIE_NF_RELACIONADA, '' AS NOME_CLIFOR_RELACIONADA, 
@@ -259,7 +275,7 @@ AS
 												  ICMS_EFETIVO, ICMS_PRESUMIDO, BASE_ICMS_PRESUMIDO, VALOR_ISENTO,
 												  SEQ_ITEM_SUBSTITUTO, CHAVE_NFE_SUBSTITUTO, CODIGO_FISCAL_OPERACAO,
 												  NATUREZA, SALDO_NF_ENTRADA, REFERENCIA, DESCRICAO_ITEM, NUMERO_MODELO_FISCAL) 
-						SELECT TOP 1 @COD_FECHAMENTO, C.EMPRESA, C.COD_FILIAL, A.FILIAL, A.NOME_CLIFOR, A.NF_ENTRADA, ISNULL(A.SERIE_NF_ENTRADA,''), A.CHAVE_NFE, A.RECEBIMENTO, A.VALOR_TOTAL, B.CODIGO_ITEM, LEFT(ISNULL(B.REFERENCIA_ITEM, ''),10) AS COR_ITEM, 
+						SELECT TOP 1 @COD_FECHAMENTO, C.EMPRESA, C.COD_FILIAL, A.FILIAL, A.NOME_CLIFOR, A.NF_ENTRADA, ISNULL(A.SERIE_NF_ENTRADA,''), A.CHAVE_NFE, A.RECEBIMENTO, A.VALOR_TOTAL, B.CODIGO_ITEM, SUBSTRING(LEFT(ISNULL(B.REFERENCIA_ITEM, ''),10),1,5) AS COR_ITEM, 
 						B.SUB_ITEM_TAMANHO AS TAMANHO, B.QTDE_ITEM, D.ALIQUOTA, D.BASE_ICMS_SUBSTITUTO,
 						F.VALOR_IMPOSTO AS ICMS_EFETIVO, D.ICMS_PRESUMIDO, D.BASE_ICMS_SUBSTITUTO AS BASE_ICMS_PRESUMIDO, 
 						CASE WHEN G.TRIBUT_ICMS IN ('40','41') THEN B.VALOR_ITEM ELSE 0.00 END AS VALOR_ISENTO, 
@@ -431,27 +447,37 @@ AS
 										ISNULL(QTDE,0), CHAVE_NFE_SUBSTITUTO, SEQ_ITEM_SUBSTITUTO, @COD_FECHAMENTO, UNIDADE, PRECO_UNITARIO, DESCRICAO_ITEM,NUMERO_MODELO_FISCAL, ITEM_IMPRESSAO, SALDO_NF_SAIDA, SEQ
 				FROM @TMP_SAIDA
 				
-				-------------------------------------------------------------------------------------------------------------------------------------------------  
-				-- Gerando o Fechamento do Ressarcimento [tabela CONTROLE_SALDO_RESSARCIMENTO]
-				-------------------------------------------------------------------------------------------------------------------------------------------------  
+				-----------------------------------------------------------------------------------------------------------------------------------------------
+				-- atualizando a tabela CONTROLE_SALDO_RESSARCIMENTO
+				-----------------------------------------------------------------------------------------------------------------------------------------------
 
-
-				-------------------------------------------------------------------------------------------------------------------------------------------------  
-				 
+				INSERT INTO CONTROLE_SALDO_RESSARCIMENTO (COD_FECHAMENTO, FILIAL, ITEM, ESTOQUE_INICIAL, ESTOQUE_FINAL, QTDE_MOV, 
+				                                          ICMS_EFETIVO, ICMS_PRESUMIDO, COMPL_REST, TOTAL) 
+				SELECT A.COD_FECHAMENTO, A.FILIAL, A.ITEM, 0 AS ESTOQUE_INICIAL, SUM(ISNULL(A.QTDE,0)) AS ESTOQUE_FINAL, SUM(ISNULL(A.QTDE,0)) AS QTDE_MOV, SUM(ISNULL(A.ICMS_EFETIVO,0)) AS ICMS_EFETIVO, SUM(ISNULL(A.ICMS_PRESUMIDO,0)) AS ICMS_PRESUMIDO, SUM(ISNULL(A.ICMS_EFETIVO,0) - ISNULL(A.ICMS_PRESUMIDO,0)) AS COMPL_REST, SUM(ISNULL(A.ICMS_EFETIVO,0) - ISNULL(A.ICMS_PRESUMIDO,0)) AS TOTAL 
+				FROM CONTROLE_SAI_RESSARCIMENTO A
+				WHERE A.COD_FECHAMENTO = @COD_FECHAMENTO
+				GROUP BY A.COD_FECHAMENTO, A.FILIAL, A.ITEM
+				
+				-----------------------------------------------------------------------------------------------------------------------------------------------
 				UPDATE DADOS_FECHAMENTO_RESSARCIMENTO  
 				SET DATA_GERACAO = CONVERT(DATETIME, CONVERT(CHAR(10), GETDATE(), 112))  
 				WHERE COD_FECHAMENTO = @COD_FECHAMENTO  
+				-----------------------------------------------------------------------------------------------------------------------------------------------
 
-				-------------------------------------------------------------------------------------------------------------------------------------------------	
-				  
+				-----------------------------------------------------------------------------------------------------------------------------------------------
+				-- Atualizando o campo TIPO_REMENTENTE da tabela CONTROLE_ENT_RESSARIMENTO
+				-----------------------------------------------------------------------------------------------------------------------------------------------
+				--#ADALBERTO#-VERIFICAR... 
+				--UPDATE CONTROLE_ENT_RESSARCIMENTO SET TIPO_REMETENTE = FX_RETORNA_TIPO_REMETENTE(CONTROLE_ENT_RESSARCIMENTO.NF_ENTRADA, --CONTROLE_ENT_RESSARCIMENTO.SERIE_NF_ENTRADA, CONTROLE_ENT_RESSARCIMENTO.NOME_CLIFOR, CONTROLE_ENT_RESSARCIMENTO.ITEM_IMPRESSAO) WHERE --CONTROLE_ENT_RESSARCIMENTO.COD_FECHAMENTO = @COD_FECHAMENTO
+				-----------------------------------------------------------------------------------------------------------------------------------------------
+
+				
 				SET NOCOUNT OFF
-
-				------------------------------------------------------------------------------------------------------------------------------------------------
-				-- VERIFICA SE EXISTE UMA PROCEDURE CUSTOMIZADA DO CLIENTE PARA FECHAMENTO DE RESSARCIMENTO
-				------------------------------------------------------------------------------------------------------------------------------------------------
+				-----------------------------------------------------------------------------------------------------------------------------------------------
+				-- VERIFICA SE EXISTE UMA PROCEDURE CUSTOMIZADA DO CLIENTE PARA FECHAMENTO DE RESSARCIMENTO				-----------------------------------------------------------------------------------------------------------------------------------------------
 				IF EXISTS( SELECT * FROM SYSOBJECTS WHERE NAME = 'LX_FECHAMENTO_RESSARCIMENTO_OE_FINAL' )
 					EXECUTE LX_FECHAMENTO_RESSARCIMENTO_OE_FINAL @COD_FECHAMENTO, @EMPRESA
-				------------------------------------------------------------------------------------------------------------------------------------------------
+				-----------------------------------------------------------------------------------------------------------------------------------------------
 			END
 		END
 	END
